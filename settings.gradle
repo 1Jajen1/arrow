@@ -51,6 +51,7 @@ include {
             _ 'mtl'
             _ 'syntax'
             _ 'test'
+            _ 'laws'
             _ 'typeclasses'
         }
 
@@ -116,6 +117,11 @@ include {
 
         validation {
             _ 'validation'
+        }
+
+        propCheck {
+            _ 'prop-check'
+            _ 'prop-check-kotlintest'
         }
     }
 }

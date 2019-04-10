@@ -1,0 +1,10 @@
+apply plugin: 'kotlin-kapt'
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
+    api project(':arrow-prop-check')
+    api project(':arrow-laws')
+    implementation "io.kotlintest:kotlintest-runner-junit5:$kotlinTestVersion"
+}
+
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

@@ -31,7 +31,6 @@ class GenSpec : UnitSpec() {
     }
 
     "Gen.resize should work" {
-
       forAll { (i): NonNegative<Int> ->
         idempotentIOProperty(
           Gen.getSize().resize(i).generate().map { it == i }
@@ -42,7 +41,6 @@ class GenSpec : UnitSpec() {
 
     "Gen.scale should work" {
       // TODO redo when generating functions is done
-
       forAll { (iP, jP): Tuple2<NonNegative<Int>, NonNegative<Int>> ->
         val (i) = iP; val (j) = jP
         idempotentIOProperty(
@@ -55,7 +53,6 @@ class GenSpec : UnitSpec() {
     // TODO Fix stack safety of Gen so that these functions work under any circumstance
     "Gen.suchThat" {
       // TODO redo when generating functions is done
-
       forAll { i: Int ->
         idempotentIOProperty(
           Gen.getSize().suchThat { it > i }.generate().map { it > i }
@@ -118,7 +115,6 @@ class GenSpec : UnitSpec() {
     }
 
     "Gen.getSize should work" {
-
       forAll { (i): NonNegative<Int> ->
         idempotentIOProperty(
           Gen.getSize().resize(i).generate().map { it == i }
@@ -128,7 +124,6 @@ class GenSpec : UnitSpec() {
     }
 
     "Gen.choose should work" {
-
       forAll { (a, b): Tuple2<Int, Int> ->
         val l = Math.min(a, b);
         val u = Math.max(a, b)
@@ -140,7 +135,6 @@ class GenSpec : UnitSpec() {
     }
 
     "Gen.elements should return elemets of a given list" {
-
       forAll { l: Nel<Int> ->
         idempotentIOProperty(
           Gen.elements(*l.all.toTypedArray()).generate().map { l.contains(it) }
@@ -150,7 +144,6 @@ class GenSpec : UnitSpec() {
     }
 
     "Gen.sublistOf should return only sublists" {
-
       forAll { l: List<Int> ->
         idempotentIOProperty(
           Gen.sublistOf(l).generate().map { it.map { l.contains(it) }.fold(true) { acc, v -> acc && v } }
@@ -160,7 +153,6 @@ class GenSpec : UnitSpec() {
     }
 
     "Gen.shuffle should create permutations of a list" {
-
       forAll { l: List<Int> ->
         idempotentIOProperty(
           Gen.shuffle(l).generate().map { it.containsAll(l) }
@@ -171,7 +163,6 @@ class GenSpec : UnitSpec() {
 
     // TODO I don't like the following 3 tests
     "Gen.choose should equally choose in the range" {
-
       forAll(
         Gen.choose(1 toT 3 + 1, Int.random()),
         Property.testable()
@@ -194,6 +185,7 @@ class GenSpec : UnitSpec() {
       }
 
     }
+
     "Gen.elements should equally choose between the elements" {
 
       forAll(

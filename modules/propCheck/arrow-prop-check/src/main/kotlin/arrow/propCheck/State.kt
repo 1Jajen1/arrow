@@ -144,8 +144,7 @@ fun <S, A, R, SUT> parArby(sm: StateMachine<S, A, R, SUT>, maxThreads: Int) = co
               0 toT Gen.getSize().bind(),
               Int.random()
             ).bind() / threads
-          )
-            .bind()
+          ).bind()
         }
       )
     }.fix()

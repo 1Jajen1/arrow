@@ -161,7 +161,7 @@ class Gen<A>(val unGen: (Tuple2<RandSeed, Int>) -> A) : GenOf<A> {
       val sum = gens.map { it.a }.sum() + 1 // + 1 for inclusive range
       val c = choose(0 toT sum, Int.random()).bind()
 
-      fun pick(n: Int, l: List<Tuple2<Int, Gen<out A>>>): Gen<out A> {
+      tailrec fun pick(n: Int, l: List<Tuple2<Int, Gen<out A>>>): Gen<out A> {
         val (k, g) = l[0]
         return if (n <= k) g
         else pick(n - k, l.drop(1))
@@ -206,7 +206,7 @@ class Gen<A>(val unGen: (Tuple2<RandSeed, Int>) -> A) : GenOf<A> {
   }
 
   fun sample(): IO<List<A>> = (1..20 step 2)
-    .map { resize(it) }.map { it.generate() }.sequence(IO.applicative())
+    .map(::resize).map { it.generate() }.sequence(IO.applicative())
     .fix().map { it.fix() }
 
   fun classify(n: Int = 100, text: String, f: (A) -> Boolean): IO<Unit> = (1..n).map { generate() }

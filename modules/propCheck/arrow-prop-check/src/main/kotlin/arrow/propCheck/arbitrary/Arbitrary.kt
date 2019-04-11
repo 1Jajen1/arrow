@@ -160,8 +160,8 @@ fun <A> shrinkList(list: List<A>, f: (A) -> Sequence<A>): Sequence<List<A>> {
 // ---------------------------- Number shrinkers
 fun impossible(): Nothing = throw IllegalStateException("The impossible happened")
 
-fun shrinkByte(fail: Byte): Sequence<Byte> = when {
-  fail == 0.toByte() -> emptySequence()
+fun shrinkByte(fail: Byte): Sequence<Byte> = when (fail) {
+  0.toByte() -> emptySequence()
   else -> (
     (if (fail < 0 && (-fail).toByte() > fail) sequenceOf(-fail) else emptySequence()) +
       (sequenceOf(0) + iterate({ it / 2 }, fail.toInt()).drop(1)
@@ -178,8 +178,8 @@ fun shrinkByte(fail: Byte): Sequence<Byte> = when {
     ).map { it.toByte() } // safe because shrinking only makes things smaller and we start with a byte anyway
 }
 
-fun shrinkShort(fail: Short): Sequence<Short> = when {
-  fail == 0.toShort() -> emptySequence()
+fun shrinkShort(fail: Short): Sequence<Short> = when (fail) {
+  0.toShort() -> emptySequence()
   else -> (
     (if (fail < 0 && (-fail).toShort() > fail) sequenceOf(-fail) else emptySequence()) +
       (sequenceOf(0) + iterate({ it / 2 }, fail.toInt()).drop(1)
@@ -196,8 +196,8 @@ fun shrinkShort(fail: Short): Sequence<Short> = when {
     ).map { it.toShort() } // safe because shrinking only makes things smaller and we start with a short anyway
 }
 
-fun shrinkInt(fail: Int): Sequence<Int> = when {
-  fail == 0 -> emptySequence()
+fun shrinkInt(fail: Int): Sequence<Int> = when (fail) {
+  0 -> emptySequence()
   else -> (
     (if (fail < 0 && -fail > fail) sequenceOf(-fail) else emptySequence()) +
       (sequenceOf(0) + iterate({ it / 2 }, fail).drop(1)
@@ -214,8 +214,8 @@ fun shrinkInt(fail: Int): Sequence<Int> = when {
     )
 }
 
-fun shrinkLong(fail: Long): Sequence<Long> = when {
-  fail == 0L -> emptySequence()
+fun shrinkLong(fail: Long): Sequence<Long> = when (fail) {
+  0L -> emptySequence()
   else -> (
     (if (fail < 0 && -fail > fail) sequenceOf(-fail) else emptySequence()) +
       (sequenceOf(0L) + iterate({ it / 2 }, fail).drop(1).map { fail - it }.takeWhile {

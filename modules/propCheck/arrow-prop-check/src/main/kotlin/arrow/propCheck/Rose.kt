@@ -589,7 +589,7 @@ inline fun <reified A : Any, B> forAll(
   showB: Show<B> = Show.any(),
   noinline prop: (B) -> A
 ): Property =
-  forAllShrink(arbB.arbitrary(), { arbB.shrink(it) }, testA, showB, prop)
+  forAllShrink(arbB.arbitrary(), arbB::shrink, testA, showB, prop)
 
 @JvmName("forAllB")
 inline fun <reified A : Any, reified B : Any> forAll(
@@ -598,7 +598,7 @@ inline fun <reified A : Any, reified B : Any> forAll(
   showB: Show<B> = defShow(),
   noinline prop: (B) -> A
 ): Property =
-  forAllShrink(arbB.arbitrary(), { arbB.shrink(it) }, testA, showB, prop)
+  forAllShrink(arbB.arbitrary(), arbB::shrink, testA, showB, prop)
 
 @JvmName("forAllBlind")
 inline fun <reified A : Any, B> forAllBlind(
@@ -606,7 +606,7 @@ inline fun <reified A : Any, B> forAllBlind(
   testA: Testable<A> = defTestable(),
   noinline prop: (B) -> A
 ): Property =
-  forAllShrinkBlind(arbB.arbitrary(), { arbB.shrink(it) }, testA, prop)
+  forAllShrinkBlind(arbB.arbitrary(), arbB::shrink, testA, prop)
 
 @JvmName("forAllBlindB")
 inline fun <reified A : Any, reified B : Any> forAllBlind(
@@ -614,14 +614,14 @@ inline fun <reified A : Any, reified B : Any> forAllBlind(
   testA: Testable<A> = defTestable(),
   noinline prop: (B) -> A
 ): Property =
-  forAllShrinkBlind(arbB.arbitrary(), { arbB.shrink(it) }, testA, prop)
+  forAllShrinkBlind(arbB.arbitrary(), arbB::shrink, testA, prop)
 
 /**
  * test an io property (does not shrink)
  */
 fun ioProperty(propIO: IO<Property>): Property =
   idempotentIOProperty(
-    propIO.map { noShrinking(it) }
+    propIO.map(::noShrinking)
   )
 
 /**
@@ -637,13 +637,23 @@ fun idempotentIOProperty(propIO: IO<Property>): Property =
 fun choice(
   a: Property,
   b: Property
+): Property = choice(Eval.now(a), Eval.now(b))
+
+fun choice(
+  a: () -> Property,
+  b: () -> Property
+): Property = choice(Eval.later(a), Eval.later(b))
+
+fun choice(
+  a: Eval<Property>,
+  b: Eval<Property>
 ): Property =
   again(
     Property(
       Gen.elements(false, true).flatMap { bool ->
         counterexample(
           { if (bool) "Left" else "Right" },
-          if (bool) a else b
+          if (bool) a.value() else b.value()
         ).unProperty
       }
     )

@@ -1,7 +1,7 @@
 package arrow.propCheck.kotlintest
 
 import arrow.propCheck.propCheck
-import arrow.test.laws.Law
+import arrow.laws.laws.Law
 import io.kotlintest.TestCase
 import io.kotlintest.TestType
 

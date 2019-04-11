@@ -48,10 +48,10 @@ import arrow.propCheck.arbitrary.smart.arbitrary.arbitrary
 import arrow.propCheck.arbitrary.smart.functor.functor
 import arrow.propCheck.instances.arbitrary
 import arrow.propCheck.kotlintest.UnitSpec
-import arrow.test.generators.functionAToBArbitrary
-import arrow.test.laws.EqLaws
-import arrow.test.laws.FunctorLaws
-import arrow.test.laws.ShowLaws
+import arrow.laws.generators.functionAToBArbitrary
+import arrow.laws.laws.EqLaws
+import arrow.laws.laws.FunctorLaws
+import arrow.laws.laws.ShowLaws
 import arrow.typeclasses.Eq
 
 class BlindSpec : UnitSpec() {

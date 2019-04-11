@@ -32,8 +32,16 @@ inline fun <A> GenOf<A>.fix(): Gen<A> =
  */
 class Gen<A>(val unGen: (Tuple2<RandSeed, Int>) -> A) : GenOf<A> {
 
-  fun <B> map(f: (A) -> B): Gen<B> = genMap(f)
-  internal fun <B> genMap(f: (A) -> B): Gen<B> = Gen { f(fix().unGen(it)) }
+  fun <B> map(f: (A) -> B): Gen<B> = Gen { f(fix().unGen(it)) }
+
+  fun <B> ap(fa: Gen<(A) -> B>): Gen<B> = fa.flatMap { map(it) }
+
+  fun <B> flatMap(f: (A) -> Gen<B>): Gen<B> = Gen { (r, n) ->
+    val (a, b) = r.split()
+    f(
+      fix().unGen(a toT n)
+    ).fix().unGen(b toT n)
+  }
 
   /**
    * Change the size parameter. Must be >= 0
@@ -232,13 +240,13 @@ class Gen<A>(val unGen: (Tuple2<RandSeed, Int>) -> A) : GenOf<A> {
 
 @extension
 interface GenFunctor : Functor<ForGen> {
-  override fun <A, B> Kind<ForGen, A>.map(f: (A) -> B): Kind<ForGen, B> = fix().genMap(f)
+  override fun <A, B> Kind<ForGen, A>.map(f: (A) -> B): Kind<ForGen, B> = fix().map(f)
 }
 
 @extension
 interface GenApplicative : Applicative<ForGen> {
   override fun <A, B> Kind<ForGen, A>.ap(ff: Kind<ForGen, (A) -> B>): Kind<ForGen, B> =
-    Gen.monad().run { ff.flatMap { f -> map(f) } }
+    fix().ap(ff.fix())
 
   override fun <A> just(a: A): Kind<ForGen, A> =
     Gen { a }
@@ -247,12 +255,7 @@ interface GenApplicative : Applicative<ForGen> {
 @extension
 interface GenMonad : Monad<ForGen> {
   override fun <A, B> Kind<ForGen, A>.flatMap(f: (A) -> Kind<ForGen, B>): Kind<ForGen, B> =
-    Gen { (r, n) ->
-      val (a, b) = r.split()
-      f(
-        fix().unGen(a toT n)
-      ).fix().unGen(b toT n)
-    }
+    fix().flatMap { f(it).fix() }
 
   override fun <A> just(a: A): Kind<ForGen, A> =
     Gen { a }

@@ -7,7 +7,7 @@ import arrow.propCheck.*
 import arrow.propCheck.arbitrary.gen.monad.monad
 import arrow.propCheck.kotlintest.UnitSpec
 import arrow.propCheck.property.testable.testable
-import arrow.test.laws.MonadLaws
+import arrow.laws.laws.MonadLaws
 import arrow.typeclasses.Eq
 
 class GenSpec : UnitSpec() {

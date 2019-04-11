@@ -66,7 +66,7 @@ class IntegralShrinkSpec : PropertySpec({
 class ShrinkListSpec : PropertySpec({
     "shrinkList should generate an ordered sequence of smaller lists"(Args(maxSuccess = 1000)) {
         forAll { l: List<Int> ->
-            shrinkList(l) { shrinkInt(it) }.take(100).toList().let {
+            shrinkList(l, ::shrinkInt).take(100).toList().let {
                 counterexample(
                     { "$it" },
                     it.zipWithNext().fold(true) { acc, (l, r) ->

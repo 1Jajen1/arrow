@@ -4,6 +4,7 @@ test-pattern:
   active: true
   patterns:
     - '.*/test/.*'
+    - '.*/laws/.*'
   exclude-rule-sets:
     - 'comments'
   exclude-rules:

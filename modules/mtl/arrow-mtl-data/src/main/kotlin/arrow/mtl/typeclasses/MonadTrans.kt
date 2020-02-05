@@ -31,4 +31,6 @@ interface MonadTrans<F> {
    * ```
    */
   fun <G, A> Kind<G, A>.liftT(MG: Monad<G>): Kind2<F, G, A>
+
+  fun <G> monad(MG: Monad<G>): Monad<Kind<F, G>>
 }

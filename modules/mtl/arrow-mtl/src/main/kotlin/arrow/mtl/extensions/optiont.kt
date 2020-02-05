@@ -7,6 +7,7 @@ import arrow.core.Eval
 import arrow.core.ForOption
 import arrow.core.None
 import arrow.core.Option
+import arrow.core.Some
 import arrow.core.Tuple2
 import arrow.core.extensions.option.eq.eq
 import arrow.core.extensions.option.foldable.foldable
@@ -25,11 +26,20 @@ import arrow.mtl.OptionT
 import arrow.mtl.OptionTOf
 import arrow.mtl.OptionTPartialOf
 import arrow.mtl.extensions.optiont.monad.monad
+import arrow.mtl.extensions.optiont.monadTransControl.monadTransControl
 import arrow.mtl.fix
 import arrow.mtl.typeclasses.ComposedTraverse
+import arrow.mtl.typeclasses.MonadBase
+import arrow.mtl.typeclasses.MonadBaseControl
 import arrow.mtl.typeclasses.MonadTrans
+import arrow.mtl.typeclasses.MonadTransControl
 import arrow.mtl.typeclasses.Nested
+import arrow.mtl.typeclasses.Run
+import arrow.mtl.typeclasses.RunInBase
+import arrow.mtl.typeclasses.StM
+import arrow.mtl.typeclasses.StT
 import arrow.mtl.typeclasses.compose
+import arrow.mtl.typeclasses.defaultMonadBaseControl
 import arrow.mtl.typeclasses.unnest
 import arrow.mtl.value
 import arrow.typeclasses.Alternative
@@ -311,4 +321,53 @@ interface OptionTEqK<F> : EqK<OptionTPartialOf<F>> {
 interface OptionTMonadTrans : MonadTrans<ForOptionT> {
   override fun <F, A> Kind<F, A>.liftT(MF: Monad<F>): Kind2<ForOptionT, F, A> =
     OptionT.liftF(MF, this)
+
+  override fun <G> monad(MG: Monad<G>): Monad<Kind<ForOptionT, G>> = OptionT.monad(MG)
+}
+
+@extension
+interface OptionTMonadTransControl : MonadTransControl<ForOptionT>, OptionTMonadTrans {
+  override fun <M, A> liftWith(MM: Monad<M>, runInM: (Run<ForOptionT>) -> Kind<M, A>): Kind2<ForOptionT, M, A> =
+    OptionT(
+      MM.run {
+        runInM(object : Run<ForOptionT> {
+          override fun <N, A> invoke(NM: Monad<N>, na: Kind2<ForOptionT, N, A>): Kind<N, StT<ForOptionT, A>> =
+            NM.run { na.fix().value().map { StT<ForOptionT, A>(it) } }
+        }).map(::Some)
+      }
+    )
+
+  override fun <M, A> Kind<M, StT<ForOptionT, A>>.restoreT(MM: Monad<M>): Kind2<ForOptionT, M, A> =
+    OptionT(MM.run { map { it.st as Option<A> } })
+
+  override fun <F, A> Kind<F, A>.liftT(MF: Monad<F>): Kind2<ForOptionT, F, A> = liftWith(MF) { this }
+}
+
+fun <B, M> OptionT.Companion.monadBase(MBB: MonadBase<B, M>): MonadBase<B, OptionTPartialOf<M>> = object : OptionTMonadBase<B, M> {
+  override fun MBB(): MonadBase<B, M> = MBB
+}
+
+interface OptionTMonadBase<B, M> : MonadBase<B, OptionTPartialOf<M>> {
+  fun MBB(): MonadBase<B, M>
+  override fun MB(): Monad<B> = MBB().MB()
+  override fun MM(): Monad<OptionTPartialOf<M>> = OptionT.monad(MBB().MM())
+  override fun <A> Kind<B, A>.liftBase(): Kind<OptionTPartialOf<M>, A> = MBB().run {
+    OptionT.liftF(MM(), liftBase())
+  }
+}
+
+fun <B, M> OptionT.Companion.monadBaseControl(MBC: MonadBaseControl<B, M>): MonadBaseControl<B, OptionTPartialOf<M>> = object : OptionTMonadBaseControl<B, M> {
+  override fun MBB(): MonadBaseControl<B, M> = MBC
+}
+
+interface OptionTMonadBaseControl<B, M> : MonadBaseControl<B, OptionTPartialOf<M>>, OptionTMonadBase<B, M> {
+  override fun MBB(): MonadBaseControl<B, M>
+
+  override fun <A> liftBaseWith(runInBase: (RunInBase<OptionTPartialOf<M>, B>) -> Kind<B, A>): Kind<OptionTPartialOf<M>, A> =
+    defaultMonadBaseControl(MBB().MB(), MBB().MM(), OptionT.monadTransControl(), MBB()).liftBaseWith(runInBase)
+
+  override fun <A> StM<OptionTPartialOf<M>, A>.restoreM(): Kind<OptionTPartialOf<M>, A> =
+    defaultMonadBaseControl(MBB().MB(), MBB().MM(), OptionT.monadTransControl(), MBB()).run { restoreM() }
+
+  override fun <A> Kind<B, A>.liftBase(): Kind<OptionTPartialOf<M>, A> = liftBaseWith { this }
 }

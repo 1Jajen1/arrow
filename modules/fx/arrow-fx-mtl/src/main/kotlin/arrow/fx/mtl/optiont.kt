@@ -26,7 +26,11 @@ import arrow.mtl.OptionTOf
 import arrow.mtl.OptionTPartialOf
 import arrow.mtl.extensions.OptionTMonad
 import arrow.mtl.extensions.OptionTMonadError
+import arrow.mtl.extensions.monadBaseControl
+import arrow.mtl.extensions.optiont.monadThrow.monadThrow
 import arrow.mtl.extensions.optiont.monadTrans.liftT
+import arrow.mtl.fix
+import arrow.mtl.typeclasses.monadBaseControlId
 import arrow.mtl.value
 import arrow.typeclasses.Monad
 import arrow.typeclasses.MonadError
@@ -41,33 +45,8 @@ interface OptionTBracket<F> : Bracket<OptionTPartialOf<F>, Throwable>, OptionTMo
 
   override fun ME(): MonadError<F, Throwable> = MD()
 
-  override fun <A, B> OptionTOf<F, A>.bracketCase(release: (A, ExitCase<Throwable>) -> OptionTOf<F, Unit>, use: (A) -> OptionTOf<F, B>): OptionT<F, B> = MD().run {
-    OptionT(Ref(this, false).flatMap { ref ->
-      value().bracketCase(use = {
-        it.fold(
-          { just(None) },
-          { a -> use(a).value() }
-        )
-      }, release = { option, exitCase ->
-        option.fold(
-          { just(Unit) },
-          { a ->
-            when (exitCase) {
-              is ExitCase.Completed -> release(a, exitCase).value().flatMap {
-                it.fold({ ref.set(true) }, { just(Unit) })
-              }
-              else -> release(a, exitCase).value().unit()
-            }
-          }
-        )
-      }).flatMap { option ->
-        option.fold(
-          { just(None) },
-          { ref.get().map { b -> if (b) None else option } }
-        )
-      }
-    })
-  }
+  override fun <A, B> OptionTOf<F, A>.bracketCase(release: (A, ExitCase<Throwable>) -> OptionTOf<F, Unit>, use: (A) -> OptionTOf<F, B>): OptionT<F, B> =
+    defaultBracket(MD(), OptionT.monadBaseControl(monadBaseControlId(MD())), release, use).fix()
 }
 
 @extension
@@ -116,43 +95,11 @@ interface OptionTConcurrent<F> : Concurrent<OptionTPartialOf<F>>, OptionTAsync<F
     OptionT.liftF(this, value().fork(ctx).map(::fiberT))
   }
 
-  override fun <A, B> CoroutineContext.racePair(fa: OptionTOf<F, A>, fb: OptionTOf<F, B>): OptionT<F, RacePair<OptionTPartialOf<F>, A, B>> = CF().run {
-    val racePair: Kind<F, Option<RacePair<OptionTPartialOf<F>, A, B>>> =
-      racePair(fa.value(), fb.value()).flatMap { res: RacePair<F, Option<A>, Option<B>> ->
-        when (res) {
-          is RacePair.First -> when (val winner = res.winner) {
-            None -> res.fiberB.cancel().map { None }
-            is Some -> just(Some(RacePair.First(winner.t, fiberT(res.fiberB))))
-          }
-          is RacePair.Second -> when (val winner = res.winner) {
-            is None -> res.fiberA.cancel().map { None }
-            is Some -> just(Some(RacePair.Second(fiberT(res.fiberA), winner.t)))
-          }
-        }
-      }
-    OptionT(racePair)
-  }
+  override fun <A, B> CoroutineContext.racePair(fa: OptionTOf<F, A>, fb: OptionTOf<F, B>): OptionT<F, RacePair<OptionTPartialOf<F>, A, B>> =
+    defaultRacePair(CF(), OptionT.monadThrow(CF()), OptionT.monadBaseControl(monadBaseControlId(CF())), fa, fb).fix()
 
-  override fun <A, B, C> CoroutineContext.raceTriple(fa: OptionTOf<F, A>, fb: OptionTOf<F, B>, fc: OptionTOf<F, C>): OptionT<F, RaceTriple<OptionTPartialOf<F>, A, B, C>> = CF().run {
-    val raceTriple: Kind<F, Option<RaceTriple<OptionTPartialOf<F>, A, B, C>>> =
-      raceTriple(fa.value(), fb.value(), fc.value()).flatMap { res: RaceTriple<F, Option<A>, Option<B>, Option<C>> ->
-        when (res) {
-          is RaceTriple.First -> when (val winner = res.winner) {
-            None -> tupledN(res.fiberB.cancel(), res.fiberC.cancel()).map { None }
-            is Some -> just(Some(RaceTriple.First(winner.t, fiberT(res.fiberB), fiberT(res.fiberC))))
-          }
-          is RaceTriple.Second -> when (val winner = res.winner) {
-            is None -> tupledN(res.fiberA.cancel(), res.fiberC.cancel()).map { None }
-            is Some -> just(Some(RaceTriple.Second(fiberT(res.fiberA), winner.t, fiberT(res.fiberC))))
-          }
-          is RaceTriple.Third -> when (val winner = res.winner) {
-            is None -> res.fiberA.cancel().map { None }
-            is Some -> just(Some(RaceTriple.Third(fiberT(res.fiberA), fiberT(res.fiberB), winner.t)))
-          }
-        }
-      }
-    OptionT(raceTriple)
-  }
+  override fun <A, B, C> CoroutineContext.raceTriple(fa: OptionTOf<F, A>, fb: OptionTOf<F, B>, fc: OptionTOf<F, C>): OptionT<F, RaceTriple<OptionTPartialOf<F>, A, B, C>> =
+    defaultRaceTriple(CF(), OptionT.monadThrow(CF()), OptionT.monadBaseControl(monadBaseControlId(CF())), fa, fb, fc).fix()
 
   fun <A> fiberT(fiber: Fiber<F, Option<A>>): Fiber<OptionTPartialOf<F>, A> = CF().run {
     Fiber(OptionT(fiber.join()), OptionT.liftF(this, fiber.cancel()))

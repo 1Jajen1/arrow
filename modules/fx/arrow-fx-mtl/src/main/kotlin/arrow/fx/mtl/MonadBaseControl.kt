@@ -64,12 +64,12 @@ fun <F, G, A, B, E> CoroutineContext.defaultRacePair(
         when (res) {
           is RacePair.First -> ME.run {
             res.winner.restoreM().map { a ->
-              RacePair.First(a, Fiber(MBC.control { res.fiberB.join() }, MBC.run { res.fiberB.cancel().liftBase() }))
+              RacePair.First(a, Fiber(control { res.fiberB.join() }, res.fiberB.cancel().liftBase()))
             }.handleErrorWith { e -> res.fiberB.cancel().liftBase().flatMap { raiseError<RacePair<F, A, B>>(e) } }
           }
           is RacePair.Second -> ME.run {
             res.winner.restoreM().map { b ->
-              RacePair.Second(Fiber(MBC.control { res.fiberA.join() }, MBC.run { res.fiberA.cancel().liftBase() }), b)
+              RacePair.Second(Fiber(control { res.fiberA.join() }, res.fiberA.cancel().liftBase()), b)
             }.handleErrorWith { e -> res.fiberA.cancel().liftBase().flatMap { raiseError<RacePair<F, A, B>>(e) } }
           }
         }
@@ -94,23 +94,23 @@ fun <F, G, A, B, C, E> CoroutineContext.defaultRaceTriple(
             res.winner.restoreM().map { a ->
               RaceTriple.First(
                 a,
-                Fiber(MBC.control { res.fiberB.join() }, MBC.run { res.fiberB.cancel().liftBase() }),
-                Fiber(MBC.control { res.fiberC.join() }, MBC.run { res.fiberC.cancel().liftBase() })
+                Fiber(control { res.fiberB.join() }, res.fiberB.cancel().liftBase()),
+                Fiber(control { res.fiberC.join() }, res.fiberC.cancel().liftBase())
               )
             }.handleErrorWith { e -> tupledN(res.fiberB.cancel().liftBase(), res.fiberC.cancel().liftBase()).unit().flatMap { raiseError<RaceTriple<F, A, B, C>>(e) } }
           is RaceTriple.Second ->
             res.winner.restoreM().map { b ->
               RaceTriple.Second(
-                Fiber(MBC.control { res.fiberA.join() }, MBC.run { res.fiberA.cancel().liftBase() }),
+                Fiber(control { res.fiberA.join() }, res.fiberA.cancel().liftBase()),
                 b,
-                Fiber(MBC.control { res.fiberC.join() }, MBC.run { res.fiberC.cancel().liftBase() })
+                Fiber(control { res.fiberC.join() }, res.fiberC.cancel().liftBase())
               )
             }.handleErrorWith { e -> tupledN(res.fiberA.cancel().liftBase(), res.fiberC.cancel().liftBase()).unit().flatMap { raiseError<RaceTriple<F, A, B, C>>(e) } }
           is RaceTriple.Third ->
             res.winner.restoreM().map { c ->
               RaceTriple.Third(
-                Fiber(MBC.control { res.fiberA.join() }, MBC.run { res.fiberA.cancel().liftBase() }),
-                Fiber(MBC.control { res.fiberB.join() }, MBC.run { res.fiberB.cancel().liftBase() }),
+                Fiber(control { res.fiberA.join() }, res.fiberA.cancel().liftBase()),
+                Fiber(control { res.fiberB.join() }, res.fiberB.cancel().liftBase()),
                 c
               )
             }.handleErrorWith { e -> tupledN(res.fiberA.cancel().liftBase(), res.fiberB.cancel().liftBase()).unit().flatMap { raiseError<RaceTriple<F, A, B, C>>(e) } }

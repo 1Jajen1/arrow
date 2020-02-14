@@ -29,6 +29,7 @@ fun <F> monadBaseControlId(MF: Monad<F>): MonadBaseControl<F, F> = object : Mona
     runInBase(object : RunInBase<F, F> {
       override fun <A> invoke(ma: Kind<F, A>): Kind<F, StM<F, A>> = MF.run { ma.map { StM<F, A>(it) } }
     })
+
   override fun <A> StM<F, A>.restoreM(): Kind<F, A> = MF.just(st as A)
 }
 
@@ -42,16 +43,12 @@ fun <T, M, B> defaultMonadBaseControl(
   override fun MM(): Monad<Kind<T, M>> = MT.monad(MM)
 
   override fun <A> liftBaseWith(runInBase: (RunInBase<Kind<T, M>, B>) -> Kind<B, A>): Kind<Kind<T, M>, A> =
-    MT.run {
-      liftWith(MM) { run ->
-        MBB.run {
-          liftBaseWith { runInM ->
-            runInBase(object : RunInBase<Kind<T, M>, B> {
-              override fun <A> invoke(ma: Kind<Kind<T, M>, A>): Kind<B, StM<Kind<T, M>, A>> =
-                MB.run { runInM(run(MM, ma)).map { StM<Kind<T, M>, A>(it) } }
-            })
-          }
-        }
+    MT.liftWith(MM) { run ->
+      MBB.liftBaseWith { runInM ->
+        runInBase(object : RunInBase<Kind<T, M>, B> {
+          override fun <A> invoke(ma: Kind<Kind<T, M>, A>): Kind<B, StM<Kind<T, M>, A>> =
+            MB.run { runInM(run(MM, ma)).map { StM<Kind<T, M>, A>(it) } }
+        })
       }
     }
 

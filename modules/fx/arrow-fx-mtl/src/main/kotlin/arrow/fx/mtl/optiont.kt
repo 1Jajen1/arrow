@@ -39,21 +39,22 @@ import kotlin.coroutines.CoroutineContext
 
 @extension
 @undocumented
-interface OptionTBracket<F> : Bracket<OptionTPartialOf<F>, Throwable>, OptionTMonadError<F, Throwable> {
+interface OptionTBracket<F, E> : Bracket<OptionTPartialOf<F>, E>, OptionTMonadError<F, E> {
 
-  fun MD(): MonadDefer<F>
+  fun BR(): Bracket<F, E>
 
-  override fun ME(): MonadError<F, Throwable> = MD()
+  override fun ME(): MonadError<F, E> = BR()
 
-  override fun <A, B> OptionTOf<F, A>.bracketCase(release: (A, ExitCase<Throwable>) -> OptionTOf<F, Unit>, use: (A) -> OptionTOf<F, B>): OptionT<F, B> =
-    defaultBracket(MD(), OptionT.monadBaseControl(monadBaseControlId(MD())), release, use).fix()
+  override fun <A, B> OptionTOf<F, A>.bracketCase(release: (A, ExitCase<E>) -> OptionTOf<F, Unit>, use: (A) -> OptionTOf<F, B>): OptionT<F, B> =
+    defaultBracket(BR(), OptionT.monadBaseControl(monadBaseControlId(BR())), release, use).fix()
 }
 
 @extension
 @undocumented
-interface OptionTMonadDefer<F> : MonadDefer<OptionTPartialOf<F>>, OptionTBracket<F> {
+interface OptionTMonadDefer<F> : MonadDefer<OptionTPartialOf<F>>, OptionTBracket<F, Throwable> {
 
-  override fun MD(): MonadDefer<F>
+  fun MD(): MonadDefer<F>
+  override fun BR(): Bracket<F, Throwable> = MD()
 
   override fun <A> defer(fa: () -> OptionTOf<F, A>): OptionT<F, A> =
     OptionT(MD().defer { fa().value() })

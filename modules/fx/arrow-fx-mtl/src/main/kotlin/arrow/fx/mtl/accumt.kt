@@ -42,18 +42,19 @@ interface AccumTMonadIO<S, F> : MonadIO<AccumTPartialOf<S, F>>, AccumTMonad<S, F
 }
 
 @extension
-interface AccumTBracket<S, F> : Bracket<AccumTPartialOf<S, F>, Throwable>, AccumTMonadError<S, F, Throwable> {
-  fun MD(): MonadDefer<F>
+interface AccumTBracket<S, F, E> : Bracket<AccumTPartialOf<S, F>, E>, AccumTMonadError<S, F, E> {
+  fun BR(): Bracket<F, E>
   override fun MS(): Monoid<S>
-  override fun ME(): MonadError<F, Throwable> = MD()
+  override fun ME(): MonadError<F, E> = BR()
 
-  override fun <A, B> Kind<AccumTPartialOf<S, F>, A>.bracketCase(release: (A, ExitCase<Throwable>) -> Kind<AccumTPartialOf<S, F>, Unit>, use: (A) -> Kind<AccumTPartialOf<S, F>, B>): Kind<AccumTPartialOf<S, F>, B> =
-    defaultBracket(MD(), AccumT.monadBaseControl(monadBaseControlId(MD()), MS()), release, use)
+  override fun <A, B> Kind<AccumTPartialOf<S, F>, A>.bracketCase(release: (A, ExitCase<E>) -> Kind<AccumTPartialOf<S, F>, Unit>, use: (A) -> Kind<AccumTPartialOf<S, F>, B>): Kind<AccumTPartialOf<S, F>, B> =
+    defaultBracket(BR(), AccumT.monadBaseControl(monadBaseControlId(BR()), MS()), release, use)
 }
 
 @extension
-interface AccumTMonadDefer<S, F> : MonadDefer<AccumTPartialOf<S, F>>, AccumTBracket<S, F> {
-  override fun MD(): MonadDefer<F>
+interface AccumTMonadDefer<S, F> : MonadDefer<AccumTPartialOf<S, F>>, AccumTBracket<S, F, Throwable> {
+  fun MD(): MonadDefer<F>
+  override fun BR(): Bracket<F, Throwable> = MD()
   override fun MS(): Monoid<S>
   override fun <A> defer(fa: () -> Kind<AccumTPartialOf<S, F>, A>): Kind<AccumTPartialOf<S, F>, A> =
     AccumT { MD().defer { fa().fix().runAccumT(it) } }
